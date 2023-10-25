@@ -1,6 +1,9 @@
 #include <iostream>
 #include <windows.h>
 #include <conio.h>
+#include <vector>
+
+#include "BoardState.h"
 
 using namespace std;
 
@@ -14,9 +17,12 @@ void InputProcess();
 bool IsWin();
 int MappingValue(int val, char factor);
 
+int MiniMax(int mapY, int mapX, int turn);
+void SearchGameTree(BoardState* current, int depth);
+
 int board[MAX_Y][MAX_X];
-bool player1[3][3];
-bool player2[3][3];
+vector<vector<bool>> player1(3, vector<bool>(3));
+vector<vector<bool>> player2(3, vector<bool>(3));
 
 int turn;
 int winner;
@@ -186,6 +192,8 @@ void InputProcess()
     int X = (MAX_X / 2);
     int Y = (MAX_Y / 2) + START_Y;
 
+    int eval = 0;
+
     bool enter = false;
     char icon = '+';
     int keyin = 0;
@@ -196,6 +204,7 @@ void InputProcess()
         cout << "X: " << X << " \n";
         cout << "Y: " << Y << " \n";
         cout << "Last keyin value: " << keyin << " \n";
+        cout << "Expect: " << eval << "  \n";
 
         GotoXY(X, Y);
         cout << icon;
@@ -207,6 +216,7 @@ void InputProcess()
         switch (keyin)
         {
         case 224: // arrow keys
+        {
             keyin = _getch();
             switch (keyin)
             {
@@ -223,17 +233,22 @@ void InputProcess()
                 if (Y + 2 < MAX_Y + 2) Y += 2;
                 break;
             }
-            break;
+            int mapY = MappingValue(Y, 'y');
+            int mapX = MappingValue(X, 'x');
+            eval = MiniMax(mapY, mapX, turn);
 
+            break;
+        }
         case 13: // enter
-            int map_y = MappingValue(Y, 'y');
-            int map_x = MappingValue(X, 'x');
+        {
+            int mapY = MappingValue(Y, 'y');
+            int mapX = MappingValue(X, 'x');
 
             if (turn % 2 == 0) // player 1's input
             {
-                if (!player1[map_y][map_x] && !player2[map_y][map_x])
+                if (!player1[mapY][mapX] && !player2[mapY][mapX])
                 {
-                    player1[map_y][map_x] = true;
+                    player1[mapY][mapX] = true;
                     if (IsWin()) winner = 1;
                     enter = true;
                 }
@@ -241,9 +256,9 @@ void InputProcess()
             }
             else // player 2's input
             {
-                if (!player1[map_y][map_x] && !player2[map_y][map_x])
+                if (!player1[mapY][mapX] && !player2[mapY][mapX])
                 {
-                    player2[map_y][map_x] = true;
+                    player2[mapY][mapX] = true;
                     if (IsWin()) winner = 2;
                     enter = true;
                 }
@@ -252,6 +267,69 @@ void InputProcess()
             board[Y - START_Y][X] = (turn % 2) + 2; // player1 = 2, player2 = 3
             break;
         }
+        }
     }
     turn++;
+}
+
+int MiniMax(int mapY, int mapX, int turn)
+{
+    BoardState* current;
+    if (turn % 2 == 0) // was player 1, Search tree from player2's turn
+    {
+        current = new BoardState(player2, player1, turn + 1);
+    }
+    else
+    {
+        current = new BoardState(player1, player2, turn + 1);
+    }
+
+    current->minPlayer[mapY][mapX] = true;
+    SearchGameTree(current, 0);
+
+    int eval = current->evaluation;
+    eval = -eval;
+
+    delete current;
+
+    return eval;
+}
+
+void SearchGameTree(BoardState* current, int depth)
+{
+    if (current->IsEnd())
+        return;
+
+    for (int i = 0; i < 3; ++i)
+    {
+        for (int j = 0; j < 3; ++j)
+        {
+            if (current->IsOpen(i, j))
+            {
+                BoardState* child = new BoardState(current->maxPlayer, current->minPlayer, current->turn+1);
+                if (depth % 2 == 0) // max turn
+                    child->maxPlayer[i][j] = true;
+                else // min turn
+                    child->minPlayer[i][j] = true;
+
+                SearchGameTree(child, depth + 1);
+
+                if (!current->visited)
+                {
+                    current->evaluation = child->evaluation;
+                    current->visited = true;
+                }
+                else
+                {
+                    if (depth % 2 == 0)
+                        current->evaluation = max(current->evaluation, child->evaluation);
+                    else
+                        current->evaluation = min(current->evaluation, child->evaluation);
+                }
+                    
+                delete child;
+            }
+        }
+    }
+
 }
