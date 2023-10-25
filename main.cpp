@@ -194,11 +194,12 @@ void InputProcess()
     int X = (MAX_X / 2);
     int Y = (MAX_Y / 2) + START_Y;
 
-    int eval = 0;
+    int eval = MiniMax(MappingValue(Y, 'y'), MappingValue(X, 'x'), turn);
 
     bool enter = false;
     char icon = '+';
     int keyin = 0;
+
     while (!enter)
     {
         // print info
@@ -309,7 +310,8 @@ int MiniMax(int mapY, int mapX, int turn)
     SearchGameTree(current, 0, -1000, 1000);
 
     int eval = current->evaluation;
-    eval = -eval;
+    if (eval > 0) eval = -1;
+    else if (eval < 0) eval = 1;
 
     delete current;
 
@@ -320,6 +322,11 @@ void SearchGameTree(BoardState* current, int depth, int alpha, int beta)
 {
     if (current->IsEnd())
         return;
+    if (depth == 5) // heuristic evaluation
+    {
+        current->evaluation = current->Heuristic();
+        return;
+    }
 
     for (int i = 0; i < 3; ++i)
     {

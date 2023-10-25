@@ -113,6 +113,43 @@ public:
         }
         return false;
     }
+    int Heuristic()
+    {
+        int hMax = 0;
+        int hMin = 0;
+        for (int i = 0; i < 3; ++i)
+        {
+            int cntMax = 0;
+            int cntMin = 0;
+            for (int j = 0; j < 3; ++j)
+            {
+                if (!minPlayer[i][j]) cntMax++;
+                if (!maxPlayer[i][j]) cntMin++;
+            }
+            if (cntMax == 3) hMax++;
+            if (cntMin == 3) hMin++;
+        }
+
+        for (int i = 0; i < 3; i++)
+        {
+            int cntMax = 0;
+            int cntMin = 0;
+            for (int j = 0; j < 3; j++)
+            {
+                if (!minPlayer[j][i]) cntMax++;
+                if (!maxPlayer[j][i]) cntMin++;
+            }
+            if (cntMax == 3) hMax++;
+            if (cntMin == 3) hMin++;
+        }
+        // diagonal
+        if (!minPlayer[0][0] && !minPlayer[1][1] && !minPlayer[2][2]) hMax++;
+        if (!minPlayer[0][2] && !minPlayer[1][1] && !minPlayer[2][0]) hMax++;
+        if (!maxPlayer[0][0] && !maxPlayer[1][1] && !maxPlayer[2][2]) hMin++;
+        if (!maxPlayer[0][2] && !maxPlayer[1][1] && !maxPlayer[2][0]) hMin++;
+
+        return hMax - hMin;
+    }
 };
 
 
