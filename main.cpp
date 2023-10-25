@@ -2,6 +2,8 @@
 #include <windows.h>
 #include <conio.h>
 #include <vector>
+#include <set>
+#include <string>
 
 #include "BoardState.h"
 
@@ -18,7 +20,7 @@ bool IsWin();
 int MappingValue(int val, char factor);
 
 int MiniMax(int mapY, int mapX, int turn);
-void SearchGameTree(BoardState* current, int depth);
+void SearchGameTree(BoardState* current, int depth, int alpha, int beta);
 
 int board[MAX_Y][MAX_X];
 vector<vector<bool>> player1(3, vector<bool>(3));
@@ -201,10 +203,27 @@ void InputProcess()
     {
         // print info
         GotoXY(0, MAX_Y + 3);
+        string msg;
+        switch (eval)
+        {
+        case -1:
+            msg = "LOSE (:";
+            break;
+        case 0:
+            msg = "DRAW :)";
+            break;
+        case 1:
+            msg = "WIN!! :)";
+            break;
+        case 100:
+            msg = " ";
+            break;
+        }
+
         cout << "X: " << X << " \n";
         cout << "Y: " << Y << " \n";
         cout << "Last keyin value: " << keyin << " \n";
-        cout << "Expect: " << eval << "  \n";
+        cout << "Expect: " << msg << "      \n";
 
         GotoXY(X, Y);
         cout << icon;
@@ -235,8 +254,10 @@ void InputProcess()
             }
             int mapY = MappingValue(Y, 'y');
             int mapX = MappingValue(X, 'x');
-            eval = MiniMax(mapY, mapX, turn);
-
+            if (!player1[mapY][mapX] && !player2[mapY][mapX])
+                eval = MiniMax(mapY, mapX, turn);
+            else
+                eval = 100;
             break;
         }
         case 13: // enter
@@ -285,7 +306,7 @@ int MiniMax(int mapY, int mapX, int turn)
     }
 
     current->minPlayer[mapY][mapX] = true;
-    SearchGameTree(current, 0);
+    SearchGameTree(current, 0, -1000, 1000);
 
     int eval = current->evaluation;
     eval = -eval;
@@ -295,7 +316,7 @@ int MiniMax(int mapY, int mapX, int turn)
     return eval;
 }
 
-void SearchGameTree(BoardState* current, int depth)
+void SearchGameTree(BoardState* current, int depth, int alpha, int beta)
 {
     if (current->IsEnd())
         return;
@@ -312,19 +333,30 @@ void SearchGameTree(BoardState* current, int depth)
                 else // min turn
                     child->minPlayer[i][j] = true;
 
-                SearchGameTree(child, depth + 1);
+                SearchGameTree(child, depth + 1, alpha, beta);
 
                 if (!current->visited)
                 {
                     current->evaluation = child->evaluation;
                     current->visited = true;
+
+                    if (depth % 2 == 0) alpha = current->evaluation;
+                    else beta = current->evaluation;
                 }
                 else
                 {
-                    if (depth % 2 == 0)
+                    if (depth % 2 == 0) // max
+                    {
                         current->evaluation = max(current->evaluation, child->evaluation);
+                        if (current->evaluation > beta) return; // beta cut
+                        alpha = max(alpha, current->evaluation);
+                    }
                     else
+                    {
                         current->evaluation = min(current->evaluation, child->evaluation);
+                        if (current->evaluation < alpha) return; // alpha cut
+                        beta = min(beta, current->evaluation);
+                    }
                 }
                     
                 delete child;
